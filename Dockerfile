@@ -7,10 +7,8 @@ ENV PYTHONUNBUFFERED=1 \
     UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=never
 
-RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl bash \
- && rm -rf /var/lib/apt/lists/* \
- && pip install --no-cache-dir uv
+# python:3.12-slim 已自带 bash/ca-certificates；所有依赖均有 wheel，无需编译工具链。
+RUN pip install --no-cache-dir uv
 
 WORKDIR /app
 COPY . /app
