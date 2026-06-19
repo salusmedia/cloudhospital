@@ -1,0 +1,9 @@
+{
+  "extends": "@hospital/config/tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [{ "name": "next" }],
+    "jsx": "preserve"
+  },
+  "include": ["src", "next-env.d.ts"],
+  "exclude": ["node_modules", ".next"]
+}

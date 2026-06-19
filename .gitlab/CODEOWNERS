@@ -1,0 +1,27 @@
+# 谁能批哪块代码 —— GitLab 会据此强制要求相应评审人。
+# 语法：路径  @用户名/@组名
+
+# 默认：架构组兜底
+*                                   @arch-team
+
+# 共享层 & 平台服务 & 网关：必须架构组评审
+/packages/                          @arch-team
+/services/gateway/                  @arch-team
+/services/platform-auth/            @arch-team @security-team
+/services/platform-patient/         @arch-team @security-team
+/services/platform-ai/              @arch-team
+/services/platform-file/            @arch-team
+
+# 基础设施 / CI / 部署：运维 + 架构组
+/infra/                             @ops-team @arch-team
+/.gitlab-ci.yml                     @ops-team @arch-team
+/.claude/                           @arch-team
+
+# 各场景：由各自负责人评审（新建场景时把负责人加到对应行）
+# 示例：
+/apps/scenario-001-frontend/        @owner-001
+/services/scenario-001-backend/     @owner-001
+# /apps/scenario-002-frontend/      @owner-002
+# /services/scenario-002-backend/   @owner-002
+/services/scenario-019-backend/     @owner-019
+/services/scenario-006-backend/     @owner-006

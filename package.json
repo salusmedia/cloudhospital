@@ -1,0 +1,27 @@
+{
+  "name": "ai-cloud-hospital",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "check": "turbo run check",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "//gen:types": "读取各后端 OpenAPI，生成 TS 共享类型到 packages/shared-types",
+    "gen:types": "node scripts/gen-types.mjs",
+    "//setup:py": "为各 Python 服务创建虚拟环境并安装依赖",
+    "setup:py": "node scripts/setup-py.mjs",
+    "//new:scenario": "交互式生成新场景骨架（前后端 + CLAUDE.md + 示例 + 测试）",
+    "new:scenario": "node scripts/new-scenario.mjs",
+    "e2e": "turbo run e2e"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "prettier": "^3.3.0"
+  }
+}

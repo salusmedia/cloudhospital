@@ -1,0 +1,4 @@
+{
+  "extends": "@hospital/config/tsconfig.base.json",
+  "include": ["src"]
+}

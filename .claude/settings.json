@@ -1,0 +1,24 @@
+{
+  "//": "团队共享的 Claude Code 配置，随仓库提交，对所有人生效。个人偏好放 settings.local.json（不提交）。",
+  "permissions": {
+    "//allow": "常用只读/安全命令免确认，提升效率",
+    "allow": [
+      "Bash(pnpm run check)",
+      "Bash(pnpm run check --filter:*)",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm run lint:*)",
+      "Bash(pytest:*)",
+      "Bash(git status)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ],
+    "//deny": "危险/对外操作必须人工确认，不允许 AI 自动执行",
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(docker push:*)",
+      "Bash(rm -rf:*)"
+    ]
+  },
+  "//hooks": "提交前自动跑门禁等钩子可在此配置（见 docs/07）"
+}

@@ -1,0 +1,5 @@
+# JS/TS workspace 定义。Python 服务用 uv 单独管理（见 pyproject.toml）。
+packages:
+  - "apps/*"
+  - "packages/*"
+  # 后端虽是 Python，但若有 JS 工具脚本也可纳入；纯 Python 服务不在此列。

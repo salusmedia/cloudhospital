@@ -1,0 +1,20 @@
+# Python 端 uv workspace 根。各后端服务与共享库 py-common 作为成员，统一解析依赖。
+# JS 端用 pnpm workspace（见 pnpm-workspace.yaml），两套并存、互不干扰。
+[tool.uv.workspace]
+members = [
+  "packages/py-common",
+  "services/*",
+]
+# 排除非 Python 的占位（gateway 若用 Python 则保留；纯配置目录可在此排除）
+exclude = []
+
+[tool.uv.sources]
+py-common = { workspace = true }
+
+# 数据库迁移工具依赖（仅运维/建表用，不进业务服务运行镜像）。
+# 安装：uv sync --group db；执行：见 infra/db/README.md。
+[dependency-groups]
+db = [
+  "alembic>=1.13",
+  "psycopg[binary]>=3.2",
+]

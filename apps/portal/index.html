@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>转诊一件事 · AI云医院</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- 登录 -->
+<section id="loginView" class="login-wrap">
+  <div class="login-card">
+    <div class="brand">⛨ 转诊一件事</div>
+    <p class="sub">AI云医院 · 医护工作台（真实接口 · 真实数据库）</p>
+    <label>账号<input id="username" value="doctor_card" /></label>
+    <label>密码<input id="password" type="password" value="123456" /></label>
+    <button id="loginBtn" class="primary">登录</button>
+    <p class="hint">演示账号：doctor_card / 123456（心内科医生）</p>
+  </div>
+</section>
+
+<!-- 主应用 -->
+<section id="appView" class="hidden">
+  <header class="topbar">
+    <div class="logo">⛨ AI云医院工作站</div>
+    <nav class="tabs">
+      <button class="tab on" data-view="doctor" onclick="switchView('doctor',this)">🔁 转诊一件事</button>
+      <button class="tab" data-view="teleconsult" onclick="switchView('teleconsult',this)">📹 在线复诊</button>
+      <button class="tab" data-view="homebed" onclick="switchView('homebed',this)">🛏️ 家庭病床</button>
+      <button class="tab" data-view="mdt" onclick="switchView('mdt',this)">👥 MDT</button>
+      <button class="tab" data-view="admin" onclick="switchView('admin',this)">📊 管理</button>
+      <button class="tab" data-view="credit" onclick="switchView('credit',this)">💳 信用</button>
+    </nav>
+    <div class="who"><span id="whoName"></span><span id="whoMeta" class="meta"></span>
+      <button id="logoutBtn" class="ghost sm" onclick="logout()">退出</button></div>
+  </header>
+
+  <!-- ============ 医生工作台 ============ -->
+  <main class="view show" id="view-doctor">
+    <div class="grid">
+      <div class="col">
+        <div class="card">
+          <h3>➕ 发起转诊</h3>
+          <div class="form-row">
+            <label>患者标识<input id="newPatient" value="P-1001" /></label>
+            <label>类型<select id="newType">
+              <option value="up">上转</option><option value="down">下转</option>
+              <option value="flat">平转</option><option value="emergency">急诊直转</option></select></label>
+            <label>风险<select id="newRisk">
+              <option value="yellow">黄·上转</option><option value="red">红·急危</option><option value="green">绿·基层</option></select></label>
+          </div>
+          <div class="btn-row">
+            <button id="recommendBtn" class="ghost sm" onclick="loadRecommend()">🤖 智能推荐接收机构</button>
+            <button id="createBtn" class="primary sm" onclick="createReferral()">发起转诊单</button>
+          </div>
+          <div id="recommendBox"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><h3>📋 待办转诊单</h3><button class="ghost sm" onclick="loadReferrals()">刷新</button></div>
+          <table class="tbl">
+            <thead><tr><th>单号</th><th>患者</th><th>类型</th><th>风险</th><th>医保</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody id="refRows"><tr><td colspan="7" class="empty">加载中…</td></tr></tbody>
+          </table>
+          <p class="note">患者姓名/医保来自平台患者主数据（已脱敏）；仅显示你有科室权限的单子。</p>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card" id="detailCard">
+          <div class="card-h"><h3>🗂️ 转诊单详情 <span id="detailRef" class="tag"></span></h3></div>
+          <div id="detailEmpty" class="empty">点左侧某张单子的「详情」查看全流程</div>
+          <div id="detailBody" class="hidden">
+            <div class="seg" id="detailSeg">
+              <button class="on" onclick="detailTab('progress',this)">进度</button>
+              <button onclick="detailTab('insurance',this)">医保测算</button>
+              <button onclick="detailTab('materials',this)">资料互认</button>
+              <button onclick="detailTab('consent',this)">知情同意</button>
+              <button onclick="detailTab('checks',this)">五要素</button>
+              <button onclick="detailTab('nodes',this)">积分节点</button>
+              <button onclick="detailTab('downward',this)">下转方案</button>
+            </div>
+            <div id="detailPane"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ MDT会诊 ============ -->
+  <main class="view" id="view-mdt">
+    <div class="grid">
+      <div class="col">
+        <div class="card">
+          <div class="card-h"><h3>👥 MDT 会诊室</h3><button class="ghost sm" onclick="loadMdt()">刷新</button></div>
+          <div id="mdtList"></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <h3>🩺 会诊详情 <span id="mdtTopic" class="tag"></span></h3>
+          <div id="mdtDetail"><div class="empty">点左侧会诊查看专家与病例</div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 管理驾驶舱 ============ -->
+  <main class="view" id="view-admin">
+    <div class="admin-wrap">
+      <div class="kpi-row" id="kpiRow"></div>
+      <div class="grid">
+        <div class="col">
+          <div class="card"><h3>📈 转诊类型分布</h3><div id="typeDist"></div></div>
+          <div class="card"><h3>🏆 机构协同排名（接收量）</h3><div id="orgRank"></div></div>
+          <div class="card"><div class="card-h"><h3>🚨 异常转诊预警</h3></div><div id="alertList"></div></div>
+        </div>
+        <div class="col">
+          <div class="card"><h3>💰 协同服务计量 / 机构分账</h3><div id="settleBox"></div></div>
+          <div class="card"><h3>⚙️ 规则配置</h3><div id="rulesBox"></div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 信用账户 ============ -->
+  <main class="view" id="view-credit">
+    <div class="grid">
+      <div class="col">
+        <div class="card account">
+          <div class="card-h"><h3>💳 我的服务信用账户</h3><button class="ghost sm" onclick="loadAccount()">刷新</button></div>
+          <div class="acct-nums">
+            <div><b id="acctPoints">—</b><span>累计积分</span></div>
+            <div><b id="acctBalance">—</b><span>可兑现(元)</span></div>
+          </div>
+          <table class="tbl mini">
+            <thead><tr><th>节点</th><th>积分</th><th>金额</th></tr></thead>
+            <tbody id="ledgerRows"><tr><td colspan="3" class="empty">暂无流水</td></tr></tbody>
+          </table>
+          <p class="note">积分不按月清零；金额按三源（DRG40%/绩效40%/结余20%）折算。完成转诊节点即记分。</p>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <div class="card-h"><h3>⚖️ 三源融合测算</h3><span class="tag">拖动参数实时折算</span></div>
+          <div class="bignum"><div><b id="incMonthly">—</b><span>预计本月到账(元)</span></div><div><b id="incUnit">—</b><span>积分单价(元/分)</span></div></div>
+          <div id="srcRow"></div>
+          <div class="params">
+            <label>DRG附加点数 <b id="vDrg">4</b>%<input type="range" min="3" max="5" step="0.5" value="4" oninput="INC.drg=+this.value;renderIncentive()" /></label>
+            <label>绩效划拨比例 <b id="vRatio">5</b>%<input type="range" min="3" max="8" step="0.5" value="5" oninput="INC.ratio=+this.value;renderIncentive()" /></label>
+            <label>年度真实结余(元)<input type="number" value="2800000" oninput="INC.surplus=+this.value||0;renderIncentive()" /></label>
+            <label>结余提取比例 <b id="vSur">25</b>%<input type="range" min="20" max="30" step="1" value="25" oninput="INC.surRatio=+this.value;renderIncentive()" /></label>
+          </div>
+          <p class="note"><b>四个不是</b>：不是额外发钱·不是只考核机构·不是年底才知道·不是增加填报——复用病历/检验/医保数据，节点即时记分，保底1.5/封顶3.5元/分。</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 在线复诊 ============ -->
+  <main class="view" id="view-teleconsult">
+    <div class="grid">
+      <div class="col">
+        <div class="card">
+          <div class="card-h"><h3>📹 候诊队列</h3><button class="ghost sm" onclick="loadConsults()">刷新</button></div>
+          <table class="tbl">
+            <thead><tr><th>单号</th><th>患者</th><th>主诉</th><th>AI分级</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody id="consultRows"><tr><td colspan="6" class="empty">加载中…</td></tr></tbody>
+          </table>
+          <p class="note">候诊队列按科室数据权限过滤；患者姓名来自平台患者主数据。</p>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <h3>🩺 接诊 <span id="consultRef" class="tag"></span></h3>
+          <div id="consultPanel"><div class="empty">点左侧「接诊」开始接诊</div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 家庭病床 ============ -->
+  <main class="view" id="view-homebed">
+    <div class="admin-wrap" style="padding-bottom:0"><div class="kpi-row" id="hbKpi"></div></div>
+    <div class="grid">
+      <div class="col">
+        <div class="card">
+          <div class="card-h"><h3>🛏️ 病床列表</h3><button class="ghost sm" onclick="loadBeds()">刷新</button></div>
+          <table class="tbl">
+            <thead><tr><th>床号</th><th>患者</th><th>护理等级</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody id="bedRows"><tr><td colspan="5" class="empty">加载中…</td></tr></tbody>
+          </table>
+          <p class="note">体征来自 platform_iot 实时回传；出院结算复用平台清分。</p>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <h3>📟 病床详情 <span id="bedRef" class="tag"></span></h3>
+          <div id="bedPanel"><div class="empty">点左侧「监测」查看体征与护理任务</div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</section>
+
+<!-- 患者端（移动视图） -->
+<section id="patientView" class="hidden">
+  <header class="topbar"><div class="logo">⛨ 转诊一件事 · 患者端</div>
+    <div class="who"><span id="pWhoName"></span><button class="ghost sm" onclick="logout()">退出</button></div></header>
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="p-status"><span>9:41</span><span>健康温州</span><span>🔋100%</span></div>
+      <div class="p-hero"><div class="hi" id="pHello">您好 👋</div><div class="desc">您的转诊进度 · 全程透明可见</div></div>
+      <div id="pRefSel" class="p-refsel"></div>
+      <div class="seg" id="pSeg">
+        <button class="on" onclick="pTab('progress',this)">进度</button>
+        <button onclick="pTab('insurance',this)">医保</button>
+        <button onclick="pTab('materials',this)">资料</button>
+        <button onclick="pTab('consent',this)">同意</button>
+        <button onclick="pTab('archive',this)">健康档案</button>
+      </div>
+      <div id="pPane" class="p-pane"><p class="empty">加载中…</p></div>
+    </div>
+  </div>
+</section>
+
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "@hospital/config",
+  "version": "0.1.0",
+  "private": true,
+  "//": "共享 tsconfig / eslint / prettier。其他包通过 extends 引用，统一全仓规范。",
+  "files": ["tsconfig.base.json", "eslint.base.mjs", "prettier.base.mjs"],
+  "exports": {
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./eslint": "./eslint.base.mjs",
+    "./prettier": "./prettier.base.mjs"
+  }
+}

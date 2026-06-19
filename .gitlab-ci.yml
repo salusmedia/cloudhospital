@@ -1,0 +1,70 @@
+# CI/CD 流水线（GitLab）。详解见 docs/06-CICD与私有化部署.md
+# 主链路：lint/test(每个 MR) → build-images(合 main) → deploy-test → release(手动打 tag) → package-offline
+
+stages:
+  - check
+  - build
+  - deploy-test
+  - release
+  - package
+
+variables:
+  REGISTRY: "harbor.内网地址/ai-hospital"
+  # 内网镜像/包源，保证不依赖公网
+  NPM_REGISTRY: "https://npm.内网地址"
+  PIP_INDEX_URL: "https://pypi.内网地址/simple"
+
+# ---------- 1) 质量门禁：每个 MR 都跑（只跑受影响的包） ----------
+check:
+  stage: check
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  script:
+    - pnpm install --frozen-lockfile
+    - pnpm run setup:py
+    - pnpm run check          # lint + typecheck + test（turbo 增量）
+    - pnpm run gen:types && git diff --exit-code packages/shared-types  # 类型未同步则失败
+    - bash scripts/check-deps-boundary.sh   # 跨场景 import 检查
+    - gitleaks detect --no-banner            # 密钥/敏感数据扫描
+
+# ---------- 2) 构建镜像：合入 main 后 ----------
+build-images:
+  stage: build
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_TAG'                    # 打 tag 时也构建对应版本
+  script:
+    - export TAG="${CI_COMMIT_TAG:-main-$CI_COMMIT_SHORT_SHA}"
+    - bash infra/docker/build-all.sh "$REGISTRY" "$TAG"   # 构建并 push 所有服务镜像
+  artifacts:
+    paths: [build-manifest.txt]               # 记录本次所有镜像 tag/digest
+
+# ---------- 3) 自动部署到集成测试环境 ----------
+deploy-test:
+  stage: deploy-test
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - bash infra/deploy/deploy-test.sh "main-$CI_COMMIT_SHORT_SHA"
+  environment:
+    name: test
+
+# ---------- 4) 发布：手动从 main 打 release tag 触发 ----------
+release-tag:
+  stage: release
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+  script:
+    - echo "Releasing $CI_COMMIT_TAG（镜像已在 build-images 阶段产出）"
+
+# ---------- 5) 生成离线安装包（私有化部署用） ----------
+package-offline:
+  stage: package
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+  script:
+    # 拉取该 tag 的全部镜像 → docker save 导出 → 打包 compose/迁移/脚本/手册
+    - bash infra/offline-package/build-offline.sh "$REGISTRY" "$CI_COMMIT_TAG"
+  artifacts:
+    paths: [dist/ai-hospital-*.tar.gz]
+    expire_in: 90 days
