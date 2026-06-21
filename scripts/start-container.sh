@@ -32,6 +32,7 @@ python scripts/seed_external.py || echo "!! seed 跳过/失败（非致命，继
 run() { ( cd "$1" && exec python -m uvicorn app.main:app --host 127.0.0.1 --port "$2" --log-level warning ) & }
 run services/platform-auth      8101
 run services/platform-patient   8102
+run services/platform-ai        8103
 run services/platform-file      8104
 run services/platform-archive   8105
 run services/platform-iot       8106

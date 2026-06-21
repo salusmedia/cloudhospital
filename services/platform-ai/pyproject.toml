@@ -1,14 +1,12 @@
 [project]
-name = "scenario-006-backend"
+name = "platform-ai"
 version = "0.1.0"
-description = "线上复诊 —— 场景 006 后端"
+description = "平台服务 · AI 能力（处方审方 / AI 分诊）"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115",
   "uvicorn[standard]>=0.30",
   "pydantic-settings>=2.4",
-  "sqlalchemy>=2.0",
-  "psycopg[binary]>=3.2",
   "httpx>=0.27",
   "py-common",
 ]
@@ -18,6 +16,7 @@ py-common = { workspace = true }
 
 [dependency-groups]
 dev = ["pytest>=8.3", "httpx>=0.27", "mypy>=1.11", "ruff>=0.6"]
+ai = ["anthropic>=0.30"]
 
 [tool.ruff]
 line-length = 100
