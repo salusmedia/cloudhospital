@@ -8,13 +8,17 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from decimal import Decimal
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from app.core.config import settings
 from app.db import get_db
@@ -102,8 +106,37 @@ class RxOut(BaseModel):
     review_note: str | None
 
 
-# 极简 AI 审方规则（演示）：含 NSAID 关键词给出相互作用预警。
+_PLATFORM_AI_URL = "http://localhost:8103/api/platform-ai/rx-review"
 _WARN_KEYWORDS = ("布洛芬", "双氯芬酸", "吲哚美辛")
+
+
+def _call_platform_ai(drug_name: str, usage: str | None, user: AuthUser) -> tuple[str, str | None]:
+    """调 platform-ai/rx-review；超时或失败时降级到本地规则。
+
+    服务间走 localhost（同容器），转发 X-User-* 头保持身份链路。
+    """
+    try:
+        resp = httpx.post(
+            _PLATFORM_AI_URL,
+            json={"drug_name": drug_name, "usage": usage},
+            headers={
+                "X-User-Id": user.user_id,
+                "X-User-Name": user.name,
+                "X-User-Roles": ",".join(user.roles),
+                "X-User-Scopes": ",".join(user.scopes),
+                "X-User-Caps": ",".join(user.caps),
+            },
+            timeout=4.0,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return data.get("result", "passed"), data.get("note")
+    except Exception as exc:
+        logger.warning("platform-ai 不可达，降级规则引擎: %s", exc)
+        warn = any(k in drug_name for k in _WARN_KEYWORDS)
+        review = "warn" if warn else "passed"
+        note = "与抗血小板/抗凝用药存在相互作用风险，请复核" if warn else None
+        return review, note
 
 
 @router.post("/consults/{no}/prescribe", response_model=RxOut)
@@ -112,13 +145,11 @@ def prescribe(
     user: AuthUser = Depends(require_cap("teleconsult:treat")),
     db: Session = Depends(get_db),
 ) -> RxOut:
-    """开具电子处方（含 AI 审方）。"""
+    """开具电子处方（AI 审方由 platform-ai 服务提供，不可达时降级规则引擎）。"""
     c = _load(db, no, user)
     if c.status != "in_progress":
         raise HTTPException(status.HTTP_409_CONFLICT, detail="请先接诊再开方")
-    warn = any(k in payload.drug_name for k in _WARN_KEYWORDS)
-    review = "warn" if warn else "passed"
-    note = "与抗血小板/抗凝用药存在相互作用风险，请复核" if warn else None
+    review, note = _call_platform_ai(payload.drug_name, payload.usage, user)
     rx = ConsultRx(consult_no=no, drug_name=payload.drug_name, usage=payload.usage, ai_review=review, review_note=note)
     db.add(rx)
     audit_action(user, action="prescribe", scenario=settings.scenario_id, patient_id=c.patient_id, target=no)
