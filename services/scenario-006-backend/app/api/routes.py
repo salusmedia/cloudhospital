@@ -76,6 +76,55 @@ def list_consults(
     return [_out(c) for c in rows]
 
 
+@router.get("/consults/mine", response_model=list[ConsultOut])
+def my_consults(
+    user: AuthUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[ConsultOut]:
+    """患者查看自己的复诊记录（patient_id 筛选）。"""
+    if not user.patient_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="仅患者账号可访问")
+    stmt = (
+        select(Consult)
+        .where(Consult.patient_id == user.patient_id, Consult.is_deleted.is_(False))
+        .order_by(Consult.created_at.desc())
+    )
+    rows = db.scalars(stmt).all()
+    audit_action(user, action="list_my_consults", scenario=settings.scenario_id, extra={"count": len(rows)})
+    return [_out(c) for c in rows]
+
+
+class ConsultCreateIn(BaseModel):
+    chief_complaint: str
+    dept_code: str = "card"
+
+
+@router.post("/consults", response_model=ConsultOut, status_code=status.HTTP_201_CREATED)
+def create_consult(
+    payload: ConsultCreateIn,
+    user: AuthUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ConsultOut:
+    """患者发起复诊申请（需 patient_id）。"""
+    import uuid as _uuid
+    if not user.patient_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="仅患者账号可发起复诊")
+    consult_no = f"TC-{datetime.now(timezone.utc):%Y%m%d}-{_uuid.uuid4().hex[:6]}"
+    c = Consult(
+        consult_no=consult_no,
+        patient_id=user.patient_id,
+        status="waiting",
+        chief_complaint=payload.chief_complaint,
+        org_id="wzcvh",
+        dept_code=payload.dept_code,
+        created_by=user.user_id,
+    )
+    db.add(c)
+    audit_action(user, action="create_consult", scenario=settings.scenario_id, patient_id=user.patient_id, target=consult_no)
+    db.flush()
+    return _out(c)
+
+
 @router.post("/consults/{no}/accept", response_model=ConsultOut)
 def accept_consult(
     no: str,
