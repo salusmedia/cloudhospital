@@ -18,4 +18,5 @@ RUN uv sync --group db
 ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8080
+# 场景 backend 端口已移至 18001-18019，网关监听 $PORT（Railway 自动分配）
 CMD ["bash", "scripts/start-container.sh"]
