@@ -118,6 +118,30 @@ class ReferralCreateIn(BaseModel):
     target_org: str | None = "wzcvh"
 
 
+@router.get("/referrals/mine", response_model=list[ReferralOut])
+def my_referrals(
+    user: AuthUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[ReferralOut]:
+    """患者查看自己的转诊单（patient_id 筛选）。"""
+    if not user.patient_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="仅患者账号可访问")
+    stmt = (
+        select(Referral)
+        .where(Referral.patient_id == user.patient_id, Referral.is_deleted.is_(False))
+        .order_by(Referral.created_at.desc())
+    )
+    rows = db.scalars(stmt).all()
+    audit_action(user, action="list_my_referrals", scenario=settings.scenario_id, extra={"count": len(rows)})
+    return [
+        ReferralOut(
+            ref_no=r.ref_no, patient_id=r.patient_id, dept_code=r.dept_code,
+            type=r.ref_type, risk_level=r.risk_level, status=r.status,
+        )
+        for r in rows
+    ]
+
+
 @router.post("/referrals", response_model=ReferralOut, status_code=status.HTTP_201_CREATED)
 def create_referral(
     payload: ReferralCreateIn,

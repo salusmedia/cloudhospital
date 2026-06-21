@@ -97,6 +97,24 @@ def list_followups(
     return FollowupPage(items=[_rec_out(r) for r in page_rows], total=total, page=page, page_size=page_size)
 
 
+@router.get("/followups/mine", response_model=list[FollowupRecordOut])
+def my_followups(
+    user: AuthUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[FollowupRecordOut]:
+    """患者查看自己的随访记录（patient_id 筛选）。"""
+    if not user.patient_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="仅患者账号可访问")
+    stmt = (
+        select(FollowupRecord)
+        .where(FollowupRecord.patient_id == user.patient_id, FollowupRecord.is_deleted.is_(False))
+        .order_by(FollowupRecord.visit_date.desc())
+    )
+    rows = db.scalars(stmt).all()
+    audit_action(user, action="list_my_followups", scenario=settings.scenario_id, extra={"count": len(rows)})
+    return [_rec_out(r) for r in rows]
+
+
 @router.get("/followups/{record_id}", response_model=FollowupRecordOut)
 def get_followup(
     record_id: str,
