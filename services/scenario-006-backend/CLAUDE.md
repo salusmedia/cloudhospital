@@ -1,42 +1,44 @@
-# CLAUDE.md · 场景 006 backend · 线上复诊
+# CLAUDE.md · 场景 006 backend · 在线复诊
 
 ## 场景信息
 - 编号：scenario-006
-- 名称：线上复诊
+- 名称：在线复诊（互联网诊疗）
 - 部分：后端 (FastAPI)
-- 负责人：owner-006
-- 一句话：<它解决什么问题、给谁用>
+- 一句话：慢病/随访患者通过网络发起复诊，医生在线接诊、开具处方（AI 实时审方），诊后自动计费分账。
 
 ## 核心业务流程
-<用 3~6 步把主流程说清楚>
+1. 患者在居民端发起复诊申请 → 系统创建 `consult`（status=`waiting`）。
+2. 医生查看候诊队列（`GET /consults`），按科室权限过滤。
+3. 接诊（`POST /consults/{no}/accept`）→ status 变 `in_progress`。
+4. 开具处方（`POST /consults/{no}/prescribe`）→ 后端调 `platform-ai/rx-review` 实时审方：
+   - `passed`：直接保存。
+   - `warn`：返回预警，医生可继续。
+   - `rejected`：前端提示，医生须换药。
+5. 结束诊次（`POST /consults/{no}/finish`）→ 调 `platform_clearing` 按比例计费分账（个人/科室/机构/平台）。
 
-## 依赖的平台能力（必须复用，不要自建）
-- 登录鉴权：platform-auth（经网关注入身份）
-- 患者档案：platform-patient（HTTP，勿自存患者表）
-- 文件/影像：platform-file　|　AI 能力：platform-ai
-- 鉴权/日志/审计/脱敏/DB 基类统一用 packages/py-common
+## 数据模型（schema: scenario_teleconsult）
+- `consult`：复诊会话（状态机 waiting → in_progress → finished）。
+- `consult_rx`：电子处方（含 AI 审方结果 ai_review + review_note）。
 
-## 对外暴露的接口
-- 路径前缀：/api/scenario-006
-<列出主要 API>
+## 依赖的平台能力
+- 登录鉴权：platform-auth（网关注入身份，`require_cap("teleconsult:treat")`）
+- AI 审方：`http://localhost:8103/api/platform-ai/rx-review`（不经网关，同容器 localhost）
+  - platform-ai 不可达时自动降级本地 NSAID 规则引擎
+- 计费分账：`platform_clearing.service_rate_card / income_event / income_split`
+- 数据权限：py_common `scope_filter` 按 `dept_code` 隔离
 
-## 领域术语 & 数据模型
-<术语表 + 关键实体字段，标注敏感字段>
+## 对外暴露的接口（路径前缀 /api/scenario-006）
+- `GET /consults` — 候诊/接诊队列（?status=waiting|in_progress|finished）
+- `POST /consults/{no}/accept` — 接诊
+- `POST /consults/{no}/prescribe` — 开方（AI 审方）
+- `POST /consults/{no}/finish` — 结束 + 计费
 
-## 业务规则与边界
-<特殊规则、状态机、权限规则、易错点>
-
-## 合规要求（医疗，重点）
-- 敏感字段禁止入日志；存储/传输需脱敏或加密。
-- 每个接口校验登录 + 数据权限（最小权限）。
-- 患者数据增删改查必须落审计日志。
-
-## 测试要求
-- 核心逻辑覆盖率 ≥ 80%；必测：空数据、越权、异常输入。
-- 提交前：pnpm run check --filter=scenario-006-*
+## 合规要求
+- AI 审方是辅助意见，最终决策权在医生（前端须展示该说明，`warn` 级别不强制拦截）。
+- 只存 `patient_id` 引用，不自建患者表。
+- 写操作必须落 audit_action；AI 调用不传患者 PII。
 
 ## 不要做的事
-- ❌ 不要直接 import 其他 scenario-* 的代码（走共享层或 HTTP）。
-- ❌ 不要自存患者/用户主数据。
-- ❌ 不要把敏感数据写进日志或提交记录。
-- ❌ 改接口后记得让前端 pnpm run gen:types 同步类型。
+- ❌ 不要直接调 Claude API——走 `platform-ai` 服务，保持架构边界。
+- ❌ 不要自存患者主数据。
+- ❌ 硬编码计费金额——从 `service_rate_card` 动态读。

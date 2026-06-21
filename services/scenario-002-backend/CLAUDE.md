@@ -2,41 +2,48 @@
 
 ## 场景信息
 - 编号：scenario-002
-- 名称：家庭病床
+- 名称：家庭病床管理
 - 部分：后端 (FastAPI)
-- 负责人：owner-002
-- 一句话：<它解决什么问题、给谁用>
+- 一句话：为失能/术后患者在居家环境建立连续护理通道；医护远程管床、发派护理任务、监测体征、最终计费出院。
 
 ## 核心业务流程
-<用 3~6 步把主流程说清楚>
+1. 医护提交建床申请（`POST /beds`）→ 状态 `reviewing`。
+2. 科室负责人审核准入（`POST /beds/{no}/review`）→ `admitted` 或 `rejected`。
+3. 护士发起护理任务（`POST /beds/{no}/tasks`），完成后更新（`POST /tasks/{id}/done`）。
+4. 医生查看体征监测（`GET /beds/{no}/monitor`）→ 复用 `platform_iot` 实时体征 + 异常预警。
+5. 出院结算（`POST /beds/{no}/discharge`）→ 复用 `platform_clearing` 计费分账。
 
-## 依赖的平台能力（必须复用，不要自建）
-- 登录鉴权：platform-auth（经网关注入身份）
-- 患者档案：platform-patient（HTTP，勿自存患者表）
-- 文件/影像：platform-file　|　AI 能力：platform-ai
-- 鉴权/日志/审计/脱敏/DB 基类统一用 packages/py-common
+## 数据模型（schema: scenario_homebed）
+- `bed`：病床主记录（状态机 reviewing → admitted → discharged / rejected）。
+- `care_task`：护理任务（体征采集/查房/送药）。
+- `bed_message`：医患沟通消息（患者主诉 + 医生回复）。
 
-## 对外暴露的接口
-- 路径前缀：/api/scenario-002
-<列出主要 API>
+## 依赖的平台能力
+- 登录鉴权：platform-auth（网关注入身份）
+- IoT 体征：`platform_iot.vital_sign`（原始 SQL 跨 schema 读）
+- 计费分账：`platform_clearing.service_rate_card / income_event / income_split`
+- 鉴权/审计/DB：packages/py-common（写接口用 `require_cap("homebed:manage")`）
 
-## 领域术语 & 数据模型
-<术语表 + 关键实体字段，标注敏感字段>
+## 对外暴露的接口（路径前缀 /api/scenario-002）
+- `POST /beds` — 建床申请
+- `POST /beds/{no}/review` — 准入审核
+- `GET /beds` — 病床列表（?status=）
+- `GET /beds/{no}/monitor` — 实时体征监测
+- `GET /beds/{no}/tasks` — 护理任务列表
+- `POST /beds/{no}/tasks` — 新增护理任务
+- `POST /tasks/{id}/done` — 完成护理任务
+- `POST /beds/{no}/discharge` — 出院结算
+- `GET /dashboard` — 病床看板统计
+- `GET /quality` — 护理质量指标
+- `GET/POST /beds/{no}/messages` — 医患消息
 
-## 业务规则与边界
-<特殊规则、状态机、权限规则、易错点>
-
-## 合规要求（医疗，重点）
-- 敏感字段禁止入日志；存储/传输需脱敏或加密。
-- 每个接口校验登录 + 数据权限（最小权限）。
-- 患者数据增删改查必须落审计日志。
-
-## 测试要求
-- 核心逻辑覆盖率 ≥ 80%；必测：空数据、越权、异常输入。
-- 提交前：pnpm run check --filter=scenario-002-*
+## 合规要求
+- 只存 `patient_id` 引用，不自建患者表。
+- 写操作必须落 audit_action（含 patient_id）。
+- 计费金额从 `platform_clearing.service_rate_card` 动态取，不写死。
 
 ## 不要做的事
-- ❌ 不要直接 import 其他 scenario-* 的代码（走共享层或 HTTP）。
-- ❌ 不要自存患者/用户主数据。
-- ❌ 不要把敏感数据写进日志或提交记录。
-- ❌ 改接口后记得让前端 pnpm run gen:types 同步类型。
+- ❌ 不要直接 import 其他 scenario-* 代码。
+- ❌ 不要自存患者主数据。
+- ❌ 不要硬编码计费金额——走平台计价规则表。
+- ❌ 不要把敏感数据写进日志。

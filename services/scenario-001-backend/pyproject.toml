@@ -7,7 +7,9 @@ dependencies = [
   "fastapi>=0.115",
   "uvicorn[standard]>=0.30",
   "pydantic-settings>=2.4",
-  "py-common",   # 共享库：鉴权/审计/脱敏/日志/DB（workspace 内解析，见根 pyproject）
+  "sqlalchemy>=2.0",
+  "psycopg[binary]>=3.2",
+  "py-common",
 ]
 
 [tool.uv.sources]

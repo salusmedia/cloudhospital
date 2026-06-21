@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     scenario_id: str = "001"
     api_prefix: str = "/api/scenario-001"
     # 数据库/密钥等通过环境注入，绝不写死（见根 CLAUDE.md 合规条款）。
-    database_url: str = "postgresql://dev:dev@localhost:5432/hospital"
+    database_url: str = "postgresql+psycopg://dev:dev@localhost:5432/hospital"
 
 
 settings = Settings()

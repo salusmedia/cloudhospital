@@ -4,39 +4,38 @@
 - 编号：scenario-001
 - 名称：在线随访
 - 部分：后端 (FastAPI)
-- 负责人：owner-001
-- 一句话：<它解决什么问题、给谁用>
+- 一句话：管理出院/慢病患者的随访计划与随访记录，医生可按科室权限查询并新增随访记录。
 
 ## 核心业务流程
-<用 3~6 步把主流程说清楚>
+1. 医生登录 → 查询本科室随访记录（`GET /followups`，按 `dept_code` 权限过滤）。
+2. 查看单条记录详情（`GET /followups/{id}`，越权返回 403）。
+3. 新增随访记录（`POST /followups`，记录随访方式/备注/下次日期）。
+4. 查询随访计划列表（`GET /plans`，支持按 patient_id 过滤）。
 
-## 依赖的平台能力（必须复用，不要自建）
-- 登录鉴权：platform-auth（经网关注入身份）
-- 患者档案：platform-patient（HTTP，勿自存患者表）
-- 文件/影像：platform-file　|　AI 能力：platform-ai
-- 鉴权/日志/审计/脱敏/DB 基类统一用 packages/py-common
+## 数据模型（schema: scenario_followup）
+- `followup_plan`：随访计划（慢病/出院/肿瘤），含随访间隔天数与起止日期。
+- `followup_record`：具体随访记录，方式（电话/视频/面访）+ 备注 + 下次随访日期。
+- 两者均只存 `patient_id` 引用；患者姓名从 `platform-patient` 按需查询。
+
+## 依赖的平台能力
+- 登录鉴权：platform-auth（经网关注入 X-User-* 头）
+- 患者档案：platform-patient（勿自存患者表）
+- 鉴权/审计/DB 基类：packages/py-common
+- scope_filter：按 `dept_code` 隔离科室数据
 
 ## 对外暴露的接口
-- 路径前缀：/api/scenario-001
-<列出主要 API>
+- 路径前缀：`/api/scenario-001`
+- `GET /followups` — 随访记录分页列表（?on=日期&dept=科室代码）
+- `GET /followups/{id}` — 单条随访记录
+- `POST /followups` — 新增随访记录
+- `GET /plans` — 随访计划列表（?patient_id=）
 
-## 领域术语 & 数据模型
-<术语表 + 关键实体字段，标注敏感字段>
-
-## 业务规则与边界
-<特殊规则、状态机、权限规则、易错点>
-
-## 合规要求（医疗，重点）
-- 敏感字段禁止入日志；存储/传输需脱敏或加密。
-- 每个接口校验登录 + 数据权限（最小权限）。
-- 患者数据增删改查必须落审计日志。
-
-## 测试要求
-- 核心逻辑覆盖率 ≥ 80%；必测：空数据、越权、异常输入。
-- 提交前：pnpm run check --filter=scenario-001-*
+## 合规要求
+- 患者姓名等敏感字段不写日志、不出现在错误响应里。
+- 每个接口校验登录 + 数据权限（scope_filter + has_global_scope）。
+- 写操作必须落 audit_action。
 
 ## 不要做的事
-- ❌ 不要直接 import 其他 scenario-* 的代码（走共享层或 HTTP）。
-- ❌ 不要自存患者/用户主数据。
-- ❌ 不要把敏感数据写进日志或提交记录。
-- ❌ 改接口后记得让前端 pnpm run gen:types 同步类型。
+- ❌ 不要在本场景自建患者表——patient_id 引用即可。
+- ❌ 不要把敏感字段写入日志。
+- ❌ 接口变更后记得同步 apps/scenario-001-frontend 里的 API 客户端。
