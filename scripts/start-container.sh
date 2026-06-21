@@ -36,10 +36,10 @@ run services/platform-file      8104
 run services/platform-archive   8105
 run services/platform-iot       8106
 run services/platform-consent   8107
-run services/scenario-001-backend 8001
-run services/scenario-002-backend 8002
-run services/scenario-006-backend 8006
-run services/scenario-019-backend 8019
+run services/scenario-001-backend 18001
+run services/scenario-002-backend 18002
+run services/scenario-006-backend 18006
+run services/scenario-019-backend 18019
 
 # 等后端起好，再前台起网关（绑 Railway 的 $PORT）
 sleep 6

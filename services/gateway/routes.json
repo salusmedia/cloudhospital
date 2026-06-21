@@ -4,25 +4,25 @@
       "scenario": "001",
       "prefix": "/api/scenario-001",
       "service": "scenario-001-backend",
-      "port": 8001
+      "port": 18001
     },
     {
       "scenario": "002",
       "prefix": "/api/scenario-002",
       "service": "scenario-002-backend",
-      "port": 8002
+      "port": 18002
     },
     {
       "scenario": "006",
       "prefix": "/api/scenario-006",
       "service": "scenario-006-backend",
-      "port": 8006
+      "port": 18006
     },
     {
       "scenario": "019",
       "prefix": "/api/scenario-019",
       "service": "scenario-019-backend",
-      "port": 8019
+      "port": 18019
     }
   ]
 }
