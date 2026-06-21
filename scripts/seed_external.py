@@ -420,6 +420,31 @@ def main() -> None:
             ],
         )
 
+        # ---- 场景001 在线随访（随访计划 + 随访记录）----
+        cur.execute("DELETE FROM scenario_followup.followup_record WHERE dept_code='card'")
+        cur.execute("DELETE FROM scenario_followup.followup_plan WHERE dept_code='card'")
+        cur.execute(
+            """INSERT INTO scenario_followup.followup_plan
+               (plan_no,patient_id,dept_code,org_id,plan_type,interval_days,start_date,note,created_by,updated_by)
+               VALUES('FP-0001','P-1001','card','wzcvh','chronic',30,CURRENT_DATE-90,'冠心病术后慢病随访管理','seed','seed')
+               ON CONFLICT(plan_no) DO NOTHING"""
+        )
+        cur.executemany(
+            """INSERT INTO scenario_followup.followup_record
+               (patient_id,dept_code,org_id,plan_no,visit_date,method,note,next_date,doctor_id,created_by,updated_by)
+               VALUES(%s,'card','wzcvh','FP-0001',%s,%s,%s,%s,'u1','seed','seed')""",
+            [
+                ("P-1001", "2026-05-12", "phone", "血压140/90，症状平稳，继续当前用药方案", "2026-06-12"),
+                ("P-1001", "2026-06-12", "video", "血压135/85，患者反映偶有头晕，建议增加血压监测频次", "2026-07-12"),
+                ("P-1002", "2026-05-20", "phone", "血糖6.8 mmol/L（空腹），控制较好，继续原方案", "2026-06-20"),
+                ("P-1002", "2026-06-18", "onsite", "血糖7.2 mmol/L，HbA1c 6.9%，轻度升高，调整二甲双胍剂量", "2026-07-18"),
+            ],
+        )
+        # 注册场景001到 scenario_registry（如表存在）
+        cur.execute(
+            "INSERT INTO platform_identity.scenario_registry(scenario_code,name,status) VALUES('followup','在线随访','online') ON CONFLICT(scenario_code) DO NOTHING"
+        )
+
         conn.commit()
 
         # 汇总
@@ -442,6 +467,7 @@ def main() -> None:
             "在线复诊": "scenario_teleconsult.consult",
             "体征": "platform_iot.vital_sign",
             "家庭病床": "scenario_homebed.bed",
+            "随访记录": "scenario_followup.followup_record",
             "数据授权": "platform_consent.consent_record",
             "文件": "platform_file.file_object",
         }
