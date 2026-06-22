@@ -17,7 +17,7 @@ export SEED_DB="$RAW_DB"              # seed_external.py（psycopg.connect）用
 export PLATFORM_AUTH_JWT_SECRET="$JWT" GATEWAY_JWT_SECRET="$JWT"
 export PLATFORM_PATIENT_PII_KEY="$PII"
 export GATEWAY_USE_LOCALHOST=true
-export GATEWAY_WEB_ROOT=/app/apps/portal
+export GATEWAY_WEB_ROOT=/app/web   # 聚合前端根：portal 在根 + 各 Next 静态导出在子目录（Dockerfile 装配）
 for s in PLATFORM_AUTH PLATFORM_PATIENT PLATFORM_ARCHIVE PLATFORM_IOT PLATFORM_CONSENT PLATFORM_FILE SCENARIO_001 SCENARIO_002 SCENARIO_006 SCENARIO_019; do
   export "${s}_DATABASE_URL=$SA_DB"
 done

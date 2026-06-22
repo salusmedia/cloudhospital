@@ -62,7 +62,7 @@ def test_valid_token_injects_identity_and_forwards(captured):
     fwd = captured[0]
     # 转发到正确上游
     assert fwd["url"].endswith("/api/scenario-001/followups")
-    assert "scenario-001-backend:8001" in fwd["url"]
+    assert "scenario-001-backend:18001" in fwd["url"]
     # 注入可信身份，且伪造的 X-User-Id 被覆盖/剥离
     assert fwd["headers"]["X-User-Id"] == "u1"
     assert fwd["headers"]["X-User-Scopes"] == "card"

@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  basePath: "/patient",
+  basePath: "/regulator",
   output: "export",
   transpilePackages: ["@hospital/ui", "@hospital/sdk", "@hospital/shared-types"],
   images: { unoptimized: true },

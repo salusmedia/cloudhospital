@@ -29,14 +29,31 @@ async def health() -> dict[str, str]:
 
 
 def _serve_static(path: str) -> Response:
-    """同源托管 web_root 下的静态文件；找不到则回落到 index.html（SPA）。"""
+    """同源托管 web_root 下的静态资源。
+
+    web_root 聚合多个前端：portal 在根，各 Next 静态导出在子目录
+    （/scenario-XXX、/patient、/regulator）。
+    - 目录 → 补 index.html（每个 app 一个 index.html）。
+    - 未命中文件 → 回落到该 app（首段路径）的 index.html；无则回根（portal SPA）。
+    """
     root = Path(settings.web_root).resolve()
-    candidate = (root / path.lstrip("/")).resolve()
-    # 防目录穿越：必须在 root 之内
-    if root not in candidate.parents and candidate != root:
-        candidate = root / "index.html"
+    rel = path.lstrip("/")
+    candidate = (root / rel).resolve()
+
+    # 防目录穿越：必须在 root 之内（或就是 root）
+    if candidate != root and root not in candidate.parents:
+        candidate = root
+
+    # 目录 → index.html
+    if candidate.is_dir():
+        candidate = candidate / "index.html"
+
     if not candidate.is_file():
-        candidate = root / "index.html"
+        # 回落：首段是某个已部署 app 目录则回该 app 的 index.html，否则回根。
+        seg = rel.split("/", 1)[0] if rel else ""
+        app_index = root / seg / "index.html"
+        candidate = app_index if seg and app_index.is_file() else root / "index.html"
+
     if not candidate.is_file():
         return _json_error(404, "NO_UI", "未配置前端")
     ctype = mimetypes.guess_type(str(candidate))[0] or "application/octet-stream"
