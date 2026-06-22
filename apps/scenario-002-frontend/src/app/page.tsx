@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Card } from "@hospital/ui";
+import { AuthGate, Button, Card } from "@hospital/ui";
 import { useEffect, useState } from "react";
 
 import {
@@ -32,6 +32,14 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function Page() {
+  return (
+    <AuthGate title="场景002 · 家庭病床">
+      <PageInner />
+    </AuthGate>
+  );
+}
+
+function PageInner() {
   const [dashboard, setDashboard] = useState<HomebedDashboard | null>(null);
   const [beds, setBeds] = useState<BedOut[]>([]);
   const [selected, setSelected] = useState<BedOut | null>(null);

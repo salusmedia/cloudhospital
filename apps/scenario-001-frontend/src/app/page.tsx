@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Card } from "@hospital/ui";
+import { AuthGate, Button, Card } from "@hospital/ui";
 import { useEffect, useState } from "react";
 
 import {
@@ -23,6 +23,14 @@ const PLAN_TYPE_LABEL: Record<string, string> = {
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 export default function Page() {
+  return (
+    <AuthGate title="场景001 · 在线随访">
+      <PageInner />
+    </AuthGate>
+  );
+}
+
+function PageInner() {
   const [plans, setPlans] = useState<FollowupPlan[]>([]);
   const [records, setRecords] = useState<FollowupRecord[]>([]);
   const [total, setTotal] = useState(0);

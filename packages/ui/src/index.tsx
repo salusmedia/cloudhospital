@@ -2,6 +2,8 @@ import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from "react";
 
 // 共享组件库示例。真实项目按设计规范扩展（表单、表格、患者卡片等）。
 
+export { AuthGate, extractToken } from "./AuthGate";
+
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary";
 }
