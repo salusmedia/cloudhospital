@@ -6,13 +6,15 @@
 居民账号(resident)登录则进患者端移动视图。
 
 ## 与场景前端的边界
-- 这里只做**聚合与跳转/嵌入**，不写场景专属业务逻辑——业务在各 `apps/scenario-XXX-frontend`。
-- 当前为快速演示，门户内直接内联了各场景的 UI 模块（纯 HTML/JS）；正规化时应改为
-  挂载/iframe 各场景前端，或抽到 `packages/ui` 复用。
+- portal 是**一体化综合工作站**（纯 HTML/JS，内联各场景 UI 模块），托管在 web 根 `/`。
+- 各场景/角色已另有**独立 Next 应用**（同源、各自 basePath，见 `DEPLOY.md` 路径表）：
+  `/patient`（居民端）、`/regulator`（监管端）、`/scenario-XXX`（各场景医护端）。
+  portal 与这些独立应用**并存**：portal 给"一个账号看全部"的综合视图，独立应用给单端聚焦体验。
 - 调接口统一经网关 `/api/*`（同源，免跨域）；鉴权用登录返回的访问令牌 + 刷新令牌。
 
 ## 文件
-- `index.html` / `style.css` / `app.js`：单页门户（无构建步骤，网关直接托管）。
+- `index.html` / `style.css` / `app.js`：单页门户（无构建步骤，被 Dockerfile 直接拷进 web 根 `/`）。
+- 独立 Next 应用经 Dockerfile 的 web-builder 阶段静态导出后落各子目录（见 DEPLOY.md 镜像构建）。
 
 ## 不要做的事
 - ❌ 不要在门户里写患者主数据/业务持久化——走平台服务与场景 API。
