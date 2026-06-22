@@ -25,8 +25,13 @@ done
 echo ">> alembic upgrade head"
 ( cd infra/db && alembic upgrade head )
 
-echo ">> seed demo data（幂等，纯模拟数据）"
-python scripts/seed_external.py || echo "!! seed 跳过/失败（非致命，继续）"
+# 演示数据种子：Railway/演示环境灌（SEED_DEMO=true，默认）；院内生产置 false，绝不灌模拟患者数据。
+if [ "${SEED_DEMO:-true}" = "true" ]; then
+  echo ">> seed demo data（幂等，纯模拟数据）"
+  python scripts/seed_external.py || echo "!! seed 跳过/失败（非致命，继续）"
+else
+  echo ">> SEED_DEMO=false，跳过演示种子（生产模式）"
+fi
 
 # ---- 起全部后端（仅监听 127.0.0.1；端口须与网关 routing.py / routes.json 对齐）----
 run() { ( cd "$1" && exec python -m uvicorn app.main:app --host 127.0.0.1 --port "$2" --log-level warning ) & }

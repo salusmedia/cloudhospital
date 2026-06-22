@@ -1,55 +1,32 @@
-# 院内生产编排。镜像由离线包 docker load 导入；配置全部来自外部 .env（不进镜像）。
-# 新增场景：复制一个 scenario-XXX 后端块，并在 gateway 路由中注册。
+# 院内生产编排（单容器镜像方案）。镜像由离线包 docker load 导入；配置全部来自外部 .env（不进镜像）。
+# 一个 app 容器内含 网关 + 全部平台服务/场景后端 + 聚合前端；另起一个 PostgreSQL。
+# app 启动时自动 alembic 迁移；SEED_DEMO=false 时不灌演示数据（生产默认）。
 services:
   postgres:
     image: postgres:16
-    env_file: [./config/.env]
-    volumes: ["./data/pg:/var/lib/postgresql/data"]
+    env_file: [../config/.env]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes: ["../data/pg:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
     restart: always
 
-  redis:
-    image: redis:7
-    restart: always
-
-  minio:
-    image: minio/minio
-    command: server /data
-    env_file: [./config/.env]
-    volumes: ["./data/minio:/data"]
-    restart: always
-
-  gateway:
-    image: ${REGISTRY}/gateway:${TAG}
-    env_file: [./config/.env]
-    depends_on: [postgres, redis]
-    restart: always
-
-  platform-auth:
-    image: ${REGISTRY}/platform-auth:${TAG}
-    env_file: [./config/.env]
-    restart: always
-
-  platform-patient:
-    image: ${REGISTRY}/platform-patient:${TAG}
-    env_file: [./config/.env]
-    restart: always
-
-  # ---- 场景服务（每新增一个场景，复制一段） ----
-  scenario-001-backend:
-    image: ${REGISTRY}/scenario-001-backend:${TAG}
-    env_file: [./config/.env]
-    depends_on: [postgres, gateway]
-    restart: always
-
-  # 前端统一构建进一个静态/standalone 镜像，由 nginx/gateway 提供
-  web:
-    image: ${REGISTRY}/web:${TAG}
-    env_file: [./config/.env]
-    restart: always
-
-  nginx:
-    image: nginx:1.27
-    volumes: ["./config/nginx:/etc/nginx/conf.d:ro"]
-    ports: ["443:443", "80:80"]
-    depends_on: [gateway, web]
+  app:
+    image: ${REGISTRY}/ai-hospital:${TAG}
+    env_file: [../config/.env]
+    environment:
+      # app 内网关用 localhost 串起所有子服务；对外只暴露网关端口。
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      SEED_DEMO: ${SEED_DEMO:-false}
+      PORT: "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports: ["${PUBLIC_PORT:-8080}:8080"]
     restart: always
