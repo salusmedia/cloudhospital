@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Card } from "@hospital/ui";
+import { AuthGate, Button, Card } from "@hospital/ui";
 import { useEffect, useState } from "react";
 
 import {
@@ -38,6 +38,14 @@ const AI_REVIEW_LABEL: Record<string, string> = {
 };
 
 export default function Page() {
+  return (
+    <AuthGate title="场景006 · 在线复诊">
+      <PageInner />
+    </AuthGate>
+  );
+}
+
+function PageInner() {
   const [consults, setConsults] = useState<ConsultOut[]>([]);
   const [selected, setSelected] = useState<ConsultOut | null>(null);
   const [rx, setRx] = useState<RxOut | null>(null);

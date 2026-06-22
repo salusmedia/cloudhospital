@@ -1,12 +1,20 @@
 "use client";
 
-import { Button, Card } from "@hospital/ui";
+import { AuthGate, Button, Card } from "@hospital/ui";
 import { useState } from "react";
 
 import { listFollowups, type FollowupRecord } from "./followup-api";
 
-// 样板页面：演示 用 @hospital/ui 组件 + 通过 @hospital/sdk 调后端。
 export default function Page() {
+  return (
+    <AuthGate title="场景001 · 在线随访">
+      <PageInner />
+    </AuthGate>
+  );
+}
+
+// 样板页面：演示 用 @hospital/ui 组件 + 通过 @hospital/sdk 调后端。
+function PageInner() {
   const [rows, setRows] = useState<FollowupRecord[]>([]);
   const [error, setError] = useState<string>();
 

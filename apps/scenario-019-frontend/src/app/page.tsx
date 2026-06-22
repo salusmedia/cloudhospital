@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Card } from "@hospital/ui";
+import { AuthGate, Button, Card } from "@hospital/ui";
 import { useEffect, useState } from "react";
 
 import {
@@ -21,6 +21,14 @@ import MdtView from "./MdtView";
 type Tab = "referral" | "mdt";
 
 export default function Page() {
+  return (
+    <AuthGate title="场景019 · 转诊一件事">
+      <PageInner />
+    </AuthGate>
+  );
+}
+
+function PageInner() {
   const [tab, setTab] = useState<Tab>("referral");
   return (
     <main style={{ padding: 24, maxWidth: 1200 }}>
