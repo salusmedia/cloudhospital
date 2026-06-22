@@ -10,6 +10,7 @@ __pycache__/
 # 构建产物
 dist/
 .next/
+out/
 build/
 coverage/
 .turbo/

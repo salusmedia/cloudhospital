@@ -9,15 +9,16 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@hospital/sdk": "workspace:*",
+    "@hospital/shared-types": "workspace:*",
+    "@hospital/ui": "workspace:*",
     "next": "^14.2.0",
     "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "@hospital/sdk": "workspace:*",
-    "@hospital/ui": "workspace:*",
-    "@hospital/shared-types": "workspace:*"
+    "react-dom": "^18.3.0"
   },
   "devDependencies": {
     "@hospital/config": "workspace:*",
+    "@types/node": "26.0.0",
     "@types/react": "^18.3.0",
     "typescript": "^5.5.0"
   }

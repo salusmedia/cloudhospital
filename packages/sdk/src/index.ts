@@ -1,4 +1,4 @@
-import type { ApiError, ApiResponse } from "@hospital/shared-types";
+import type { ApiError } from "@hospital/shared-types";
 
 export interface ClientOptions {
   /** 网关基地址，默认走同源 /api（生产由 nginx 反代到网关） */
@@ -37,15 +37,19 @@ export function createApiClient(opts: ClientOptions = {}) {
       },
     });
 
-    const json = (await res.json().catch(() => ({}))) as ApiResponse<T> & Partial<ApiError>;
+    // 后端（FastAPI/网关）直接返回裸载荷，不包 { data } 信封；
+    // 错误体可能是网关的 { code, message } 或 FastAPI 的 { detail }。
+    const json = (await res.json().catch(() => ({}))) as
+      & Partial<ApiError>
+      & { detail?: string };
     if (!res.ok) {
       throw new SdkError(res.status, {
         code: json.code ?? "UNKNOWN",
-        message: json.message ?? res.statusText,
+        message: json.message ?? json.detail ?? res.statusText,
         traceId: json.traceId,
       });
     }
-    return json.data;
+    return json as unknown as T;
   }
 
   return {

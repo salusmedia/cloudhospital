@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from "react";
 
 // 共享组件库示例。真实项目按设计规范扩展（表单、表格、患者卡片等）。
 
@@ -18,9 +18,17 @@ export function Button({ variant = "primary", style, ...rest }: ButtonProps) {
   return <button style={{ ...base, ...style }} {...rest} />;
 }
 
-export function Card({ title, children }: { title: string; children: ReactNode }) {
+export interface CardProps extends HTMLAttributes<HTMLElement> {
+  title: string;
+  children: ReactNode;
+}
+
+export function Card({ title, children, style, ...rest }: CardProps) {
   return (
-    <section style={{ border: "1px solid #eee", borderRadius: 8, padding: 16 }}>
+    <section
+      style={{ border: "1px solid #eee", borderRadius: 8, padding: 16, ...style }}
+      {...rest}
+    >
       <h3 style={{ marginTop: 0 }}>{title}</h3>
       {children}
     </section>
