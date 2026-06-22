@@ -16,6 +16,37 @@ import {
   completeNode,
   getCreditAccount,
 } from "./referral-api";
+import MdtView from "./MdtView";
+
+type Tab = "referral" | "mdt";
+
+export default function Page() {
+  const [tab, setTab] = useState<Tab>("referral");
+  return (
+    <main style={{ padding: 24, maxWidth: 1200 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 4 }}>
+        <h1 style={{ margin: 0 }}>场景 019 · 转诊一件事</h1>
+      </div>
+      <div style={{ display: "flex", gap: 0, borderBottom: "1px solid #f0f0f0", marginBottom: 20 }}>
+        {([["referral", "🔁 转诊协同"], ["mdt", "👥 MDT 会诊"]] as [Tab, string][]).map(([t, label]) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            style={{
+              padding: "10px 18px", border: "none", background: "none", cursor: "pointer",
+              fontSize: 15, color: tab === t ? "#1677ff" : "#595959",
+              borderBottom: tab === t ? "2px solid #1677ff" : "2px solid transparent",
+              fontWeight: tab === t ? 600 : 400,
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === "referral" ? <ReferralView /> : <MdtView />}
+    </main>
+  );
+}
 
 const STATUS_LABEL: Record<string, string> = {
   applying: "申请中",
@@ -62,7 +93,7 @@ const PAYEE_LABEL: Record<string, string> = {
   platform: "平台",
 };
 
-export default function Page() {
+function ReferralView() {
   const [referrals, setReferrals] = useState<ReferralOut[]>([]);
   const [selected, setSelected] = useState<ReferralOut | null>(null);
   const [receiveResult, setReceiveResult] = useState<ReceiveOut | null>(null);
@@ -158,10 +189,9 @@ export default function Page() {
   const totalPoints = nodes.filter((n) => n.done).reduce((s, n) => s + n.points, 0);
 
   return (
-    <main style={{ padding: 24, maxWidth: 1200 }}>
-      {/* 标题栏 */}
+    <div>
+      {/* 工具栏 */}
       <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
-        <h1 style={{ margin: 0 }}>场景 019 · 转诊一件事</h1>
         <Button onClick={loadAll}>刷新</Button>
         <Button onClick={() => setShowCreate(!showCreate)}>
           {showCreate ? "取消" : "+ 发起转诊"}
@@ -444,6 +474,6 @@ export default function Page() {
           </div>
         )}
       </div>
-    </main>
+    </div>
   );
 }
